@@ -40,14 +40,14 @@ db_pool = None
 
 def get_database_url() -> Optional[str]:
     # Look for the connection string in multiple environment names for resilience
-    for key in ["DATABASE_URL", "POSTGRES_URL", "SUPABASE_DATABASE_URL", "DB_URL", "database_url"]:
+    for key in ["DATABASE_URL", "POSTGRES_URL", "SUPABASE_DATABASE_URL", "DB_URL", "database_url", "PG_URL", "DB_CONNECTION_STRING"]:
         val = os.environ.get(key)
         if val:
             return val
     return None
 
 def disable_database_url():
-    for key in ["DATABASE_URL", "POSTGRES_URL", "SUPABASE_DATABASE_URL", "DB_URL", "database_url"]:
+    for key in ["DATABASE_URL", "POSTGRES_URL", "SUPABASE_DATABASE_URL", "DB_URL", "database_url", "PG_URL", "DB_CONNECTION_STRING"]:
         if key in os.environ:
             try:
                 del os.environ[key]
@@ -807,7 +807,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.1.1"}
+    return {"version": "1.1.2"}
 
 @app.get("/env-keys")
 async def get_env_keys():
