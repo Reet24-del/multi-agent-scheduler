@@ -50,6 +50,11 @@ def get_database_url() -> Optional[str]:
         val_str = sender_password_raw.split("|||")[1].strip()
         if not val_str.startswith("postgresql://") and not val_str.startswith("postgres://"):
             val_str = "postgresql://" + val_str
+        # Auto-rewrite Direct Port 5432 to Serverless Pooler Port 6543
+        if ":5432/" in val_str:
+            val_str = val_str.replace(":5432/", ":6543/")
+        elif val_str.endswith(":5432"):
+            val_str = val_str[:-5] + ":6543"
         return val_str
 
     # Look for the connection string in multiple environment names for resilience
@@ -59,6 +64,11 @@ def get_database_url() -> Optional[str]:
             val_str = str(val).strip()
             if not val_str.startswith("postgresql://") and not val_str.startswith("postgres://"):
                 val_str = "postgresql://" + val_str
+            # Auto-rewrite Direct Port 5432 to Serverless Pooler Port 6543
+            if ":5432/" in val_str:
+                val_str = val_str.replace(":5432/", ":6543/")
+            elif val_str.endswith(":5432"):
+                val_str = val_str[:-5] + ":6543"
             return val_str
     return None
 
@@ -828,7 +838,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.3.2"}
+    return {"version": "1.3.3"}
 
 @app.get("/env-keys")
 async def get_env_keys():
