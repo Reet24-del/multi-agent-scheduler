@@ -404,8 +404,8 @@ def resolve_relative_date(text: str, reference_date_str: str) -> str:
                     days_ahead += 7
             return (ref_date + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
             
-    # Default fallback date is tomorrow if the message indicates booking
-    return (ref_date + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    # No date found — return None so caller knows nothing was detected
+    return None
 
 # 1. Triage Node
 def triage_node(state: AgentState):
@@ -450,10 +450,17 @@ def triage_node(state: AgentState):
     # --- Simulation Mode ---
     if model_type == "simulation":
         text = user_msg.lower()
+        cancel_keywords = ["cancel", "remove", "delete", "unbook", "undo"]
+        is_cancel = any(kw in text for kw in cancel_keywords)
         scheduling_keywords = ["book", "schedule", "reserve", "slot", "appointment", "check", "availability", "time", "date", "calendar"]
         is_scheduling = any(kw in text for kw in scheduling_keywords)
         
-        if is_scheduling:
+        if is_cancel:
+            return {
+                "messages": [AIMessage(content="[ROUTE_TO_BOOKING] Routing you to our Booking Specialist to handle your cancellation...")],
+                "current_agent": "booking"
+            }
+        elif is_scheduling:
             return {
                 "messages": [AIMessage(content="[ROUTE_TO_BOOKING] Routing you to our Booking Specialist...")],
                 "current_agent": "booking"
@@ -624,6 +631,53 @@ def booking_node(state: AgentState):
                     check_intent = True
 
         user_msg = last_msg.content.lower() if isinstance(last_msg, HumanMessage) else ""
+        
+        # --- Cancel Intent ---
+        cancel_keywords = ["cancel", "remove", "delete", "unbook", "undo"]
+        if any(kw in user_msg for kw in cancel_keywords):
+            # Try to find a date in recent messages to cancel
+            cancel_date = date or today_str
+            conn = get_db_connection()
+            try:
+                ph = get_placeholder()
+                cursor = conn.cursor()
+                cursor.execute(f"SELECT id, date, time, email FROM bookings WHERE date={ph} ORDER BY id DESC LIMIT 1", (cancel_date,))
+                row = cursor.fetchone()
+                if row:
+                    booking_id, b_date, b_time, b_email = row
+                    cursor.execute(f"DELETE FROM bookings WHERE id={ph}", (booking_id,))
+                    conn.commit()
+                    # Send cancellation notification
+                    send_email_notification(b_email, f"Your appointment on {b_date} at {b_time} has been cancelled.")
+                    return {
+                        "messages": [AIMessage(content=f"✅ **Booking Cancelled!** Your appointment on **{b_date}** at **{b_time}** has been successfully removed. A cancellation confirmation has been sent to **{b_email}**.")],
+                        "current_agent": "booking"
+                    }
+                else:
+                    # Try to cancel any booking regardless of date
+                    cursor.execute("SELECT id, date, time, email FROM bookings ORDER BY id DESC LIMIT 1")
+                    row = cursor.fetchone()
+                    if row:
+                        booking_id, b_date, b_time, b_email = row
+                        cursor.execute(f"DELETE FROM bookings WHERE id={ph}", (booking_id,))
+                        conn.commit()
+                        send_email_notification(b_email, f"Your appointment on {b_date} at {b_time} has been cancelled.")
+                        return {
+                            "messages": [AIMessage(content=f"✅ **Booking Cancelled!** Your appointment on **{b_date}** at **{b_time}** has been successfully removed. A cancellation confirmation has been sent to **{b_email}**.")],
+                            "current_agent": "booking"
+                        }
+                    else:
+                        return {
+                            "messages": [AIMessage(content="I couldn't find any active bookings to cancel. Please let me know the date of the booking you'd like to cancel.")],
+                            "current_agent": "booking"
+                        }
+            except Exception as e:
+                return {
+                    "messages": [AIMessage(content=f"I found the booking but had an issue cancelling it: {str(e)}")],
+                    "current_agent": "booking"
+                }
+            finally:
+                release_db_connection(conn)
         
         # Determine user intent
         if check_intent or "check" in user_msg or "avail" in user_msg or "slot" in user_msg:
@@ -850,7 +904,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.3.5"}
+    return {"version": "1.3.6"}
 
 @app.get("/env-keys")
 async def get_env_keys():
