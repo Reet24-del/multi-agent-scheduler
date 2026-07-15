@@ -25,8 +25,12 @@ from psycopg_pool import ConnectionPool
 from langgraph.checkpoint.postgres import PostgresSaver
 
 # CONSTANTS & PATHS
-DB_DATA_PATH = "scheduler_data.db"
-DB_CHECKPOINT_PATH = "scheduler_history.db"
+if os.environ.get("VERCEL"):
+    DB_DATA_PATH = "/tmp/scheduler_data.db"
+    DB_CHECKPOINT_PATH = "/tmp/scheduler_history.db"
+else:
+    DB_DATA_PATH = "scheduler_data.db"
+    DB_CHECKPOINT_PATH = "scheduler_history.db"
 
 # Notification logs in memory for the real-time notification panel
 notification_logs = []
