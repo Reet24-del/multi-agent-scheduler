@@ -216,7 +216,7 @@ Atmos Scheduling Assistant
 """
             msg.attach(MIMEText(body, 'plain'))
 
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=3.0) as server:
                 server.login(sender_email, sender_password)
                 server.sendmail(sender_email, email, msg.as_string())
             
@@ -701,16 +701,30 @@ async def lifespan(app: FastAPI):
     global db_pool
     db_url = os.environ.get("DATABASE_URL")
     if db_url:
-        db_pool = ConnectionPool(db_url, min_size=1, max_size=10, open=True)
-        # Create bookings table and setup checkpointer in Supabase
-        conn = db_pool.getconn()
         try:
+            # Set a 3.0s timeout to verify database accessibility
+            db_pool = ConnectionPool(db_url, min_size=1, max_size=10, open=True, timeout=3.0, kwargs={"connect_timeout": 3})
+            conn = db_pool.getconn()
+            try:
+                init_data_db()
+                checkpointer = PostgresSaver(conn)
+                checkpointer.setup()
+                conn.commit()
+                print("Successfully connected to Supabase PostgreSQL.")
+            finally:
+                db_pool.putconn(conn)
+        except Exception as e:
+            print(f"Warning: Failed to connect to Supabase PostgreSQL ({e}). Falling back to SQLite mode.")
+            if db_pool:
+                try:
+                    db_pool.close()
+                except Exception:
+                    pass
+            db_pool = None
+            # Disable database URL variable for the active process to trigger SQLite paths
+            if "DATABASE_URL" in os.environ:
+                del os.environ["DATABASE_URL"]
             init_data_db()
-            checkpointer = PostgresSaver(conn)
-            checkpointer.setup()
-            conn.commit()
-        finally:
-            db_pool.putconn(conn)
     else:
         init_data_db()
     yield
