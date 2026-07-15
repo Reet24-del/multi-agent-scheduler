@@ -44,7 +44,18 @@ db_startup_error = None
 def get_database_url() -> Optional[str]:
     if db_disabled:
         return None
-    # Check if database URL is embedded in SENDER_PASSWORD
+    # On Render, SUPABASE_URL is set directly as a clean env variable
+    supabase_url = os.environ.get("SUPABASE_URL")
+    if supabase_url:
+        val_str = supabase_url.strip()
+        if not val_str.startswith("postgresql://") and not val_str.startswith("postgres://"):
+            val_str = "postgresql://" + val_str
+        # Auto-rewrite Direct Port 5432 to Serverless Pooler Port 6543
+        if ":5432/" in val_str:
+            val_str = val_str.replace(":5432/", ":6543/")
+        return val_str
+
+    # Check if database URL is embedded in SENDER_PASSWORD (Vercel workaround)
     sender_password_raw = os.environ.get("SENDER_PASSWORD", "")
     if "|||" in sender_password_raw:
         val_str = sender_password_raw.split("|||")[1].strip()
@@ -237,7 +248,8 @@ def send_booking_notification_func(email: str, details: str) -> str:
     # Real Email Dispatch via Gmail SMTP
     sender_email = os.environ.get("SENDER_EMAIL", "")
     sender_password_raw = os.environ.get("SENDER_PASSWORD", "")
-    sender_password = sender_password_raw.split("|||")[0] if "|||" in sender_password_raw else sender_password_raw
+    # On Render, SENDER_PASSWORD is clean. On Vercel, it may have ||| embedded URL
+    sender_password = sender_password_raw.split("|||")[0].strip() if "|||" in sender_password_raw else sender_password_raw
 
     if sender_email and sender_password:
         import smtplib
@@ -838,7 +850,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.3.4"}
+    return {"version": "1.3.5"}
 
 @app.get("/env-keys")
 async def get_env_keys():
