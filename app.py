@@ -38,7 +38,11 @@ notification_logs = []
 # Connection Pool and DB helpers
 db_pool = None
 
+db_disabled = False
+
 def get_database_url() -> Optional[str]:
+    if db_disabled:
+        return None
     # Check if database URL is embedded in SENDER_PASSWORD
     sender_password_raw = os.environ.get("SENDER_PASSWORD", "")
     if "|||" in sender_password_raw:
@@ -58,6 +62,8 @@ def get_database_url() -> Optional[str]:
     return None
 
 def disable_database_url():
+    global db_disabled
+    db_disabled = True
     for key in ["DATABASE_URL", "POSTGRES_URL", "SUPABASE_DATABASE_URL", "DB_URL", "database_url", "PG_URL", "DB_CONNECTION_STRING", "SUPABASE_CONN", "CONN_STR"]:
         if key in os.environ:
             try:
@@ -819,7 +825,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.2.8"}
+    return {"version": "1.2.9"}
 
 @app.get("/env-keys")
 async def get_env_keys():
