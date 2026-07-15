@@ -548,11 +548,13 @@ def booking_node(state: AgentState):
                 if time_match:
                     time = time_match.group(1).upper()
                 elif re.search(r"\b(9|10|11)\s*(?:am)\b", content, re.IGNORECASE):
-                    h = re.search(r"\b(9|10|11)\b", content, re.IGNORECASE).group(1)
-                    time = f"{int(h):02d}:00 AM"
+                    h_match = re.search(r"\b(9|10|11)\b", content, re.IGNORECASE)
+                    if h_match:
+                        time = f"{int(h_match.group(1)):02d}:00 AM"
                 elif re.search(r"\b(1|2|3|4)\s*(?:pm)\b", content, re.IGNORECASE):
-                    h = re.search(r"\b(1|2|3|4)\b", content, re.IGNORECASE).group(1)
-                    time = f"{int(h):02d}:00 PM"
+                    h_match = re.search(r"\b(1|2|3|4)\b", content, re.IGNORECASE)
+                    if h_match:
+                        time = f"{int(h_match.group(1)):02d}:00 PM"
                 
                 # Parse Date
                 resolved = resolve_relative_date(content, today_str)
@@ -904,7 +906,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.3.6"}
+    return {"version": "1.3.7"}
 
 @app.get("/env-keys")
 async def get_env_keys():
