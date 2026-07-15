@@ -38,14 +38,30 @@ notification_logs = []
 # Connection Pool and DB helpers
 db_pool = None
 
+def get_database_url() -> Optional[str]:
+    # Look for the connection string in multiple environment names for resilience
+    for key in ["DATABASE_URL", "POSTGRES_URL", "SUPABASE_DATABASE_URL", "DB_URL", "database_url"]:
+        val = os.environ.get(key)
+        if val:
+            return val
+    return None
+
+def disable_database_url():
+    for key in ["DATABASE_URL", "POSTGRES_URL", "SUPABASE_DATABASE_URL", "DB_URL", "database_url"]:
+        if key in os.environ:
+            try:
+                del os.environ[key]
+            except Exception:
+                pass
+
 def is_postgres_mode() -> bool:
-    return bool(os.environ.get("DATABASE_URL"))
+    return bool(get_database_url())
 
 def get_placeholder() -> str:
     return "%s" if is_postgres_mode() else "?"
 
 def get_db_connection():
-    db_url = os.environ.get("DATABASE_URL")
+    db_url = get_database_url()
     if db_url:
         global db_pool
         if db_pool is None:
@@ -56,7 +72,7 @@ def get_db_connection():
         return sqlite3.connect(DB_DATA_PATH, check_same_thread=False)
 
 def release_db_connection(conn):
-    db_url = os.environ.get("DATABASE_URL")
+    db_url = get_database_url()
     if db_url:
         global db_pool
         if db_pool is not None:
@@ -73,7 +89,7 @@ def release_db_connection(conn):
 def init_data_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    db_url = os.environ.get("DATABASE_URL")
+    db_url = get_database_url()
     
     if db_url:
         cursor.execute("""
@@ -729,7 +745,7 @@ fallback_saver = SqliteSaver(conn_fallback)
 graph = workflow.compile(checkpointer=fallback_saver)
 
 def compile_graph_with_conn(conn):
-    db_url = os.environ.get("DATABASE_URL")
+    db_url = get_database_url()
     if db_url:
         saver = PostgresSaver(conn)
     else:
@@ -743,7 +759,7 @@ def compile_graph_with_conn(conn):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global db_pool
-    db_url = os.environ.get("DATABASE_URL")
+    db_url = get_database_url()
     if db_url:
         try:
             # Set a 3.0s timeout to verify database accessibility
@@ -766,8 +782,7 @@ async def lifespan(app: FastAPI):
                     pass
             db_pool = None
             # Disable database URL variable for the active process to trigger SQLite paths
-            if "DATABASE_URL" in os.environ:
-                del os.environ["DATABASE_URL"]
+            disable_database_url()
             init_data_db()
     else:
         init_data_db()
@@ -792,7 +807,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.1.0"}
+    return {"version": "1.1.1"}
 
 @app.get("/env-keys")
 async def get_env_keys():
@@ -801,9 +816,9 @@ async def get_env_keys():
 
 @app.get("/db-status")
 async def get_db_status():
-    db_url = os.environ.get("DATABASE_URL")
+    db_url = get_database_url()
     if not db_url:
-        return {"status": "error", "message": "DATABASE_URL environment variable is not set."}
+        return {"status": "error", "message": "Resilient DATABASE_URL search failed. No matching postgres connection strings found."}
     
     try:
         import psycopg
