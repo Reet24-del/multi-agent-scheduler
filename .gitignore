@@ -1,0 +1,22 @@
+# Environments
+venv/
+ENV/
+.env
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# IDE / System Logs
+.DS_Store
+.system_generated/
+.idea/
+.vscode/
+.pytest_cache/

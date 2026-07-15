@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atmos: Multi-Agent Scheduling Console</title>
+    <link rel="stylesheet" href="/static/style.css?v=1.0.3">
+    <!-- Fonts: Bricolage Grotesque (display), Spline Sans (body), IBM Plex Mono (data) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Spline+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Operations Sidebar -->
+        <aside id="sidebar">
+            <div id="sidebar-header">
+                <div class="brand-row">
+                    <div class="brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 32 32" fill="none">
+                            <circle cx="9" cy="16" r="4.5" class="mark-node-a"/>
+                            <circle cx="23" cy="9" r="3.5" class="mark-node-b"/>
+                            <circle cx="23" cy="23" r="3.5" class="mark-node-b"/>
+                            <path d="M13 14.5 L19.8 10.5 M13 17.5 L19.8 21.5" class="mark-edge"/>
+                        </svg>
+                    </div>
+                    <div class="brand-text">
+                        <h1>atmos<span>/console</span></h1>
+                        <p>Multi-agent scheduling · LangGraph</p>
+                    </div>
+                    <button id="sidebar-close-btn" class="mobile-only-btn" type="button" aria-label="Close panel">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="sidebar-content">
+                <!-- Engine configuration -->
+                <section class="panel">
+                    <header class="panel-header">
+                        <span class="panel-title">Engine</span>
+                        <span class="panel-hint">LLM backend</span>
+                    </header>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label for="model-selector">Agent brain</label>
+                            <select id="model-selector">
+                                <option value="simulation" selected>Simulation (no key needed)</option>
+                                <option value="huggingface">Hugging Face: Llama 3.3 70B</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Calendar board -->
+                <section class="panel">
+                    <header class="panel-header">
+                        <span class="panel-title">Calendar board</span>
+                        <input type="date" id="calendar-date-picker" aria-label="Board date">
+                    </header>
+                    <div class="panel-body">
+                        <ul class="slot-grid" id="calendar-slots-list">
+                            <li class="slot-empty">Loading slots…</li>
+                        </ul>
+                        <div class="slot-legend">
+                            <span><i class="dot dot-free"></i>Open</span>
+                            <span><i class="dot dot-booked"></i>Reserved</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Webhook feed -->
+                <section class="panel">
+                    <header class="panel-header">
+                        <span class="panel-title">Webhook feed</span>
+                        <span class="panel-hint">POST /notifications</span>
+                    </header>
+                    <div class="panel-body">
+                        <ul class="webhook-list" id="webhook-logs-list">
+                            <li class="no-webhooks">No notifications sent yet. Confirm a booking to trigger one.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Test prompts -->
+                <section class="panel">
+                    <header class="panel-header">
+                        <span class="panel-title">Try a scenario</span>
+                    </header>
+                    <div class="panel-body">
+                        <div class="test-queries">
+                            <button class="test-query-btn" data-query="Hi! Who are you?">
+                                <span class="tq-route route-triage">triage</span>Say hello
+                            </button>
+                            <button class="test-query-btn" data-query="Check slots for tomorrow">
+                                <span class="tq-route route-booking">booking</span>Check tomorrow's slots
+                            </button>
+                            <button class="test-query-btn" data-query="Book tomorrow at 10:00 AM for test@gmail.com">
+                                <span class="tq-route route-conflict">conflict</span>Book a taken slot
+                            </button>
+                            <button class="test-query-btn" data-query="Book tomorrow at 11:00 AM for user@gmail.com">
+                                <span class="tq-route route-success">success</span>Book an open slot
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <button id="clear-thread-btn" type="button">
+                <i class="fa-regular fa-trash-can"></i> Reset thread &amp; logs
+            </button>
+        </aside>
+
+        <!-- Chat Area -->
+        <main id="chat-area">
+            <header id="chat-header">
+                <div class="chat-header-info">
+                    <button id="sidebar-toggle-btn" class="mobile-only-btn" type="button" aria-label="Open panel">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="chat-header-text">
+                        <h2>Scheduling Assistant</h2>
+                        <p id="active-agent-indicator">Triage Agent active</p>
+                    </div>
+                </div>
+
+                <!-- Signature: live agent pipeline -->
+                <div id="agent-pipeline" data-active="triage" aria-label="Agent routing pipeline">
+                    <div class="pipe-node" data-node="triage">
+                        <span class="pipe-dot"></span>Triage
+                    </div>
+                    <span class="pipe-link"></span>
+                    <div class="pipe-node" data-node="booking">
+                        <span class="pipe-dot"></span>Booking
+                    </div>
+                    <span class="pipe-link"></span>
+                    <div class="pipe-node" data-node="tools">
+                        <span class="pipe-dot"></span>Tools
+                    </div>
+                </div>
+            </header>
+
+            <section id="message-feed" aria-live="polite">
+                <!-- Messages injected here -->
+            </section>
+
+            <section id="input-panel">
+                <form id="chat-form">
+                    <input type="text" id="user-input" placeholder="Ask anything, or try “Book tomorrow at 11:00 AM”…" autocomplete="off" required>
+                    <button type="submit" id="send-btn" aria-label="Send message">
+                        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+                    </button>
+                </form>
+            </section>
+        </main>
+    </div>
+    <div id="sidebar-overlay"></div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/static/script.js?v=1.0.1"></script>
+</body>
+</html>

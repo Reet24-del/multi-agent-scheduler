@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "scheduler",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "uvicorn", "app:app", "--port", "8501"],
+      "port": 8501
+    }
+  ]
+}
