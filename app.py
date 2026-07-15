@@ -828,7 +828,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.3.0"}
+    return {"version": "1.3.1"}
 
 @app.get("/env-keys")
 async def get_env_keys():
