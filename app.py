@@ -791,8 +791,8 @@ async def lifespan(app: FastAPI):
     db_url = get_database_url()
     if db_url:
         try:
-            # Set a 3.0s timeout to verify database accessibility
-            db_pool = ConnectionPool(db_url, min_size=1, max_size=10, open=True, timeout=3.0, kwargs={"connect_timeout": 3})
+            # Set a 15.0s timeout to verify database accessibility
+            db_pool = ConnectionPool(db_url, min_size=1, max_size=10, open=True, timeout=15.0, kwargs={"connect_timeout": 15})
             conn = db_pool.getconn()
             try:
                 init_data_db()
@@ -838,7 +838,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.3.3"}
+    return {"version": "1.3.4"}
 
 @app.get("/env-keys")
 async def get_env_keys():
@@ -894,7 +894,7 @@ async def get_db_status():
     
     try:
         import psycopg
-        conn = psycopg.connect(db_url, connect_timeout=3)
+        conn = psycopg.connect(db_url, connect_timeout=15)
         cursor = conn.cursor()
         cursor.execute("SELECT 1")
         val = cursor.fetchone()[0]
