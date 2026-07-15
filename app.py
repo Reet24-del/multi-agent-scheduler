@@ -43,7 +43,10 @@ def get_database_url() -> Optional[str]:
     for key in ["DATABASE_URL", "POSTGRES_URL", "SUPABASE_DATABASE_URL", "DB_URL", "database_url", "PG_URL", "DB_CONNECTION_STRING", "SUPABASE_CONN", "CONN_STR"]:
         val = os.environ.get(key)
         if val:
-            return val
+            val_str = str(val).strip()
+            if not val_str.startswith("postgresql://") and not val_str.startswith("postgres://"):
+                val_str = "postgresql://" + val_str
+            return val_str
     return None
 
 def disable_database_url():
@@ -807,7 +810,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.2.3"}
+    return {"version": "1.2.4"}
 
 @app.get("/env-keys")
 async def get_env_keys():
