@@ -792,7 +792,25 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.0.6"}
+    return {"version": "1.0.7"}
+
+@app.get("/db-status")
+async def get_db_status():
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        return {"status": "error", "message": "DATABASE_URL environment variable is not set."}
+    
+    try:
+        import psycopg
+        conn = psycopg.connect(db_url, connect_timeout=3)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        val = cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+        return {"status": "success", "message": "Successfully connected to PostgreSQL database.", "test_query": val}
+    except Exception as e:
+        return {"status": "error", "message": f"Connection failed: {str(e)}"}
 
 @app.post("/chat")
 async def chat_endpoint(payload: ChatPayload):
