@@ -906,12 +906,16 @@ async def clear_endpoint(payload: ChatPayload):
             cursor.execute("DELETE FROM writes WHERE thread_id = %s", (thread_id,))
             conn.commit()
         else:
-            conn_history = sqlite3.connect(DB_CHECKPOINT_PATH, check_same_thread=False)
-            cursor_history = conn_history.cursor()
-            cursor_history.execute("DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,))
-            cursor_history.execute("DELETE FROM writes WHERE thread_id = ?", (thread_id,))
-            conn_history.commit()
-            conn_history.close()
+            try:
+                conn_history = sqlite3.connect(DB_CHECKPOINT_PATH, check_same_thread=False)
+                cursor_history = conn_history.cursor()
+                cursor_history.execute("DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,))
+                cursor_history.execute("DELETE FROM writes WHERE thread_id = ?", (thread_id,))
+                conn_history.commit()
+                conn_history.close()
+            except sqlite3.OperationalError as e:
+                if "no such table" not in str(e):
+                    raise
 
         # Reset notification logs
         notification_logs.clear()
