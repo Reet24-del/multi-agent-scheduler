@@ -828,7 +828,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.3.1"}
+    return {"version": "1.3.2"}
 
 @app.get("/env-keys")
 async def get_env_keys():
@@ -848,13 +848,37 @@ async def get_env_keys():
 @app.get("/db-status")
 async def get_db_status():
     global db_disabled, db_startup_error
+    db_url = get_database_url()
+    
+    # Check if database URL was originally set (even if disabled now)
+    # Temporary copy of db_disabled flag check for local parser logic
+    old_disabled = db_disabled
+    # Bypass disabled check momentarily to read url
+    globals()['db_disabled'] = False
+    raw_url = get_database_url()
+    globals()['db_disabled'] = old_disabled
+    
+    port = None
+    host = None
+    if raw_url:
+        try:
+            if "@" in raw_url:
+                host_port = raw_url.split("@")[1]
+                if ":" in host_port:
+                    host = host_port.split(":")[0]
+                    port_path = host_port.split(":")[1]
+                    port = port_path.split("/")[0]
+        except Exception:
+            pass
+            
     if db_disabled:
         return {
             "status": "disabled", 
             "message": "Database is disabled due to a connection failure during startup.",
-            "startup_error": db_startup_error
+            "startup_error": db_startup_error,
+            "parsed_host": host,
+            "parsed_port": port
         }
-    db_url = get_database_url()
     if not db_url:
         return {"status": "error", "message": "Resilient DATABASE_URL search failed. No matching postgres connection strings found."}
     
