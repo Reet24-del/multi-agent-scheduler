@@ -611,7 +611,7 @@ def booking_node(state: AgentState):
                 }
             elif parent_tool_name == "send_booking_notification":
                 return {
-                    "messages": [AIMessage(content=f"🎉 **Booking Confirmed!** I have reserved the slot on **{date or today_str}** at **{time or '11:00 AM'}** for **{email or 'user@example.com'}** and sent a mock webhook confirmation.")],
+                    "messages": [AIMessage(content=f"🎉 **Booking Confirmed!** Your appointment on **{date or today_str}** at **{time or '11:00 AM'}** has been successfully reserved. A confirmation email has been sent to **{email or 'user@example.com'}**.")],
                     "current_agent": "booking"
                 }
                 
@@ -906,7 +906,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.3.8"}
+    return {"version": "1.3.9"}
 
 @app.get("/env-keys")
 async def get_env_keys():
