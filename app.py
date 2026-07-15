@@ -792,7 +792,12 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.0.9"}
+    return {"version": "1.1.0"}
+
+@app.get("/env-keys")
+async def get_env_keys():
+    # Safely lists variable keys only (for security, values are completely hidden)
+    return {"keys": sorted(list(os.environ.keys()))}
 
 @app.get("/db-status")
 async def get_db_status():
