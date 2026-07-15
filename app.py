@@ -790,6 +790,10 @@ class ChatPayload(BaseModel):
 async def get_index():
     return FileResponse("templates/index.html")
 
+@app.get("/version")
+async def get_version():
+    return {"version": "1.0.6"}
+
 @app.post("/chat")
 async def chat_endpoint(payload: ChatPayload):
     thread_id = payload.thread_id
