@@ -39,6 +39,7 @@ notification_logs = []
 db_pool = None
 
 db_disabled = False
+db_startup_error = None
 
 def get_database_url() -> Optional[str]:
     if db_disabled:
@@ -792,6 +793,8 @@ async def lifespan(app: FastAPI):
             finally:
                 db_pool.putconn(conn)
         except Exception as e:
+            global db_startup_error
+            db_startup_error = str(e)
             print(f"Warning: Failed to connect to Supabase PostgreSQL ({e}). Falling back to SQLite mode.")
             if db_pool:
                 try:
@@ -825,7 +828,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.2.9"}
+    return {"version": "1.3.0"}
 
 @app.get("/env-keys")
 async def get_env_keys():
@@ -844,6 +847,13 @@ async def get_env_keys():
 
 @app.get("/db-status")
 async def get_db_status():
+    global db_disabled, db_startup_error
+    if db_disabled:
+        return {
+            "status": "disabled", 
+            "message": "Database is disabled due to a connection failure during startup.",
+            "startup_error": db_startup_error
+        }
     db_url = get_database_url()
     if not db_url:
         return {"status": "error", "message": "Resilient DATABASE_URL search failed. No matching postgres connection strings found."}
