@@ -807,12 +807,16 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.1.3"}
+    return {"version": "1.1.4"}
 
 @app.get("/env-keys")
 async def get_env_keys():
-    # Safely lists variable keys only (for security, values are completely hidden)
-    return {"keys": sorted(list(os.environ.keys()))}
+    # Safely lists variable keys and environment details (no secret values are exposed)
+    return {
+        "keys": sorted(list(os.environ.keys())),
+        "vercel_env": os.environ.get("VERCEL_ENV"),
+        "git_branch": os.environ.get("VERCEL_GIT_COMMIT_REF")
+    }
 
 @app.get("/db-status")
 async def get_db_status():
