@@ -597,6 +597,7 @@ Instructions:
 - If the user mentions a relative date (like "tomorrow", "next Monday", "this Friday"), you MUST resolve it mathematically using "Today is: {today_str} ({day_name})" to the exact YYYY-MM-DD string before calling any tools.
   * Example: If today is Sunday 2026-07-12, "tomorrow" is 2026-07-13.
 - If the user asks to book but you are missing their email, desired time, or date, ask them for the missing details politely.
+- CRITICAL: You MUST NOT invent, guess, or use placeholders (like "user@example.com", "user@gmail.com", or "placeholder@example.com") for the email address. If the user has not explicitly provided their email address in the conversation history, you MUST NOT call the reserve_slot tool. Instead, you MUST ask the user to provide their email address.
 - If a tool returns a conflict error (slot is taken), negotiate alternative slots by calling check_availability(date) first, and then suggesting other available hours. Do not fail silently.
 - Once a slot is successfully reserved, ALWAYS call the send_booking_notification tool.
 """
