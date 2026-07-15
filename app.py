@@ -807,15 +807,21 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.1.9"}
+    return {"version": "1.2.0"}
 
 @app.get("/env-keys")
 async def get_env_keys():
-    # Safely lists variable keys and environment details (no secret values are exposed)
+    # Safely scan for any environment keys that contain database keywords in their values
+    db_keys = []
+    for k, v in os.environ.items():
+        if any(term in str(v).lower() for term in ["supabase", "postgres", "gysgqvwexynpduwijnqi"]):
+            db_keys.append(k)
+            
     return {
         "keys": sorted(list(os.environ.keys())),
         "vercel_env": os.environ.get("VERCEL_ENV"),
-        "git_branch": os.environ.get("VERCEL_GIT_COMMIT_REF")
+        "git_branch": os.environ.get("VERCEL_GIT_COMMIT_REF"),
+        "found_db_keys": db_keys
     }
 
 @app.get("/db-status")
