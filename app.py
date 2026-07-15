@@ -929,9 +929,13 @@ async def clear_endpoint(payload: ChatPayload):
         res = "cleared"
     except Exception as e:
         if is_postgres_mode():
-            conn.rollback()
+            try:
+                conn.rollback()
+            except Exception:
+                pass
         print(f"Error during clear: {e}")
         res = "failed"
+        return JSONResponse({"status": "failed", "error": str(e)}, status_code=500)
     finally:
         cursor.close()
         release_db_connection(conn)
