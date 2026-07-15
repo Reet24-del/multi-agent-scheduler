@@ -353,7 +353,29 @@ def resolve_relative_date(text: str, reference_date_str: str) -> str:
 # 1. Triage Node
 def triage_node(state: AgentState):
     # Bypass Triage if we are already in the booking conversation flow
-    if state.get("current_agent") == "booking":
+    is_booking_active = False
+    for msg in reversed(state.get("messages", [])):
+        if isinstance(msg, AIMessage):
+            content_lower = msg.content.lower()
+            if "[route_to_booking]" in msg.content or "routing you to" in content_lower:
+                is_booking_active = True
+                break
+            if any(phrase in content_lower for phrase in [
+                "time would you prefer", 
+                "provide your email", 
+                "taken", 
+                "available standard slots",
+                "which of these times works best",
+                "reserve the slot",
+                "booking confirmed",
+                "calendar reservation"
+            ]):
+                is_booking_active = True
+                break
+            is_booking_active = False
+            break
+
+    if is_booking_active or state.get("current_agent") == "booking":
         return {
             "current_agent": "booking"
         }
