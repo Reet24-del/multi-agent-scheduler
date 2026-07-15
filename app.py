@@ -39,6 +39,14 @@ notification_logs = []
 db_pool = None
 
 def get_database_url() -> Optional[str]:
+    # Check if database URL is embedded in SENDER_PASSWORD
+    sender_password_raw = os.environ.get("SENDER_PASSWORD", "")
+    if "|||" in sender_password_raw:
+        val_str = sender_password_raw.split("|||")[1].strip()
+        if not val_str.startswith("postgresql://") and not val_str.startswith("postgres://"):
+            val_str = "postgresql://" + val_str
+        return val_str
+
     # Look for the connection string in multiple environment names for resilience
     for key in ["DATABASE_URL", "POSTGRES_URL", "SUPABASE_DATABASE_URL", "DB_URL", "database_url", "PG_URL", "DB_CONNECTION_STRING", "SUPABASE_CONN", "CONN_STR"]:
         val = os.environ.get(key)
@@ -211,7 +219,8 @@ def send_booking_notification_func(email: str, details: str) -> str:
 
     # Real Email Dispatch via Gmail SMTP
     sender_email = os.environ.get("SENDER_EMAIL", "")
-    sender_password = os.environ.get("SENDER_PASSWORD", "")
+    sender_password_raw = os.environ.get("SENDER_PASSWORD", "")
+    sender_password = sender_password_raw.split("|||")[0] if "|||" in sender_password_raw else sender_password_raw
 
     if sender_email and sender_password:
         import smtplib
@@ -810,7 +819,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.2.6"}
+    return {"version": "1.2.7"}
 
 @app.get("/env-keys")
 async def get_env_keys():
