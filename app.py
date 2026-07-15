@@ -547,12 +547,12 @@ def booking_node(state: AgentState):
                 time_match = re.search(r"(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))", content)
                 if time_match:
                     time = time_match.group(1).upper()
-                elif re.search(r"\b(9|10|11)\s*(?:am)\b", content, re.IGNORECASE):
-                    h_match = re.search(r"\b(9|10|11)\b", content, re.IGNORECASE)
+                elif re.search(r"\b(9|10|11)\s*am\b", content, re.IGNORECASE):
+                    h_match = re.search(r"\b(9|10|11)", content, re.IGNORECASE)
                     if h_match:
                         time = f"{int(h_match.group(1)):02d}:00 AM"
-                elif re.search(r"\b(1|2|3|4)\s*(?:pm)\b", content, re.IGNORECASE):
-                    h_match = re.search(r"\b(1|2|3|4)\b", content, re.IGNORECASE)
+                elif re.search(r"\b(1|2|3|4)\s*pm\b", content, re.IGNORECASE):
+                    h_match = re.search(r"\b(1|2|3|4)", content, re.IGNORECASE)
                     if h_match:
                         time = f"{int(h_match.group(1)):02d}:00 PM"
                 
@@ -650,7 +650,7 @@ def booking_node(state: AgentState):
                     cursor.execute(f"DELETE FROM bookings WHERE id={ph}", (booking_id,))
                     conn.commit()
                     # Send cancellation notification
-                    send_email_notification(b_email, f"Your appointment on {b_date} at {b_time} has been cancelled.")
+                    send_booking_notification_func(b_email, f"Your appointment on {b_date} at {b_time} has been cancelled.")
                     return {
                         "messages": [AIMessage(content=f"✅ **Booking Cancelled!** Your appointment on **{b_date}** at **{b_time}** has been successfully removed. A cancellation confirmation has been sent to **{b_email}**.")],
                         "current_agent": "booking"
@@ -663,7 +663,7 @@ def booking_node(state: AgentState):
                         booking_id, b_date, b_time, b_email = row
                         cursor.execute(f"DELETE FROM bookings WHERE id={ph}", (booking_id,))
                         conn.commit()
-                        send_email_notification(b_email, f"Your appointment on {b_date} at {b_time} has been cancelled.")
+                        send_booking_notification_func(b_email, f"Your appointment on {b_date} at {b_time} has been cancelled.")
                         return {
                             "messages": [AIMessage(content=f"✅ **Booking Cancelled!** Your appointment on **{b_date}** at **{b_time}** has been successfully removed. A cancellation confirmation has been sent to **{b_email}**.")],
                             "current_agent": "booking"
@@ -906,7 +906,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.3.7"}
+    return {"version": "1.3.8"}
 
 @app.get("/env-keys")
 async def get_env_keys():
