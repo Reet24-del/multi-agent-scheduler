@@ -792,7 +792,7 @@ async def get_index():
 
 @app.get("/version")
 async def get_version():
-    return {"version": "1.0.7"}
+    return {"version": "1.0.8"}
 
 @app.get("/db-status")
 async def get_db_status():
