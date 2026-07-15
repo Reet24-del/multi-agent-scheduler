@@ -527,10 +527,27 @@ def booking_node(state: AgentState):
                     "current_agent": "booking"
                 }
                 
+        # Multi-turn state tracking for Simulation Mode
+        booking_intent = False
+        check_intent = False
+        
+        for msg in state["messages"]:
+            if isinstance(msg, HumanMessage):
+                content = msg.content.lower()
+                if any(w in content for w in ["book", "reserve", "schedule", "appoint"]):
+                    booking_intent = True
+                    check_intent = False
+                elif any(w in content for w in ["check", "avail", "slot", "free", "show"]):
+                    check_intent = True
+                    booking_intent = False
+                if booking_intent and any(w in content for w in ["check", "avail"]):
+                    booking_intent = False
+                    check_intent = True
+
         user_msg = last_msg.content.lower() if isinstance(last_msg, HumanMessage) else ""
         
         # Determine user intent
-        if "check" in user_msg or "avail" in user_msg or "slot" in user_msg:
+        if check_intent or "check" in user_msg or "avail" in user_msg or "slot" in user_msg:
             date_val = date or today_str
             return {
                 "messages": [AIMessage(
@@ -544,7 +561,7 @@ def booking_node(state: AgentState):
                 "current_agent": "booking"
             }
             
-        if "book" in user_msg or "reserve" in user_msg or "schedule" in user_msg or (time and email):
+        if booking_intent or "book" in user_msg or "reserve" in user_msg or "schedule" in user_msg or (time and email):
             if not date:
                 date = today_str
             if not time:
