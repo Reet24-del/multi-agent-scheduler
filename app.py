@@ -913,7 +913,7 @@ async def get_env_keys():
     # Safely scan for any environment keys that contain database keywords in their values
     db_keys = []
     for k, v in os.environ.items():
-        if any(term in str(v).lower() for term in ["supabase", "postgres", "gysgqvwexynpduwijnqi"]):
+        if any(term in str(v).lower() for term in ["supabase", "postgres"]):
             db_keys.append(k)
             
     return {
